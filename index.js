@@ -18,9 +18,9 @@ const UserRoutes = require("./routes/userRoutes");
 const PublicationRoutes = require("./routes/publicationRoutes");
 const FollowRoutes = require("./routes/followRoutes");
 
-app.use("/api", UserRoutes);
-app.use("/api", PublicationRoutes);
-app.use("/api", FollowRoutes);
+app.use("/api/user", UserRoutes);
+app.use("/api/publication", PublicationRoutes);
+app.use("/api/follow", FollowRoutes);
 
 app.get("/test-route", (req, res) => {
     return res.status(200).json({

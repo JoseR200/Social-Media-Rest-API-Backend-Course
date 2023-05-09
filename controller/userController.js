@@ -122,9 +122,7 @@ const login = (req, res) => {
 }
 
 const profile = (req, res) => {
-    const id = req.params.id;
-
-    User.findById(id).select({password: 0, role: 0}).then(user => {
+    User.findById(req.user.id).select({password: 0, role: 0}).then(user => {
         if(!user){
             return res.status(404).json({
                 "status": "error",

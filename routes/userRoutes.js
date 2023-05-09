@@ -6,6 +6,10 @@ const check = require("../middlewares/auth");
 router.get("/user-test", check.auth, UserController.userTest);
 
 router.post("/register", UserController.register);
-router.get("/login", UserController.login);
+router.post("/login", UserController.login);
+router.get("/profile/:id", check.auth, UserController.profile);
+router.get("/profileList/:page?", check.auth, UserController.list);
+router.put("/update", check.auth, UserController.updateProfile);
+router.post("/upload", check.auth, UserController.uploadImage);
 
 module.exports = router;

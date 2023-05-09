@@ -1,5 +1,6 @@
 const User = require("../models/UserModel")
 const bcrypt = require("bcrypt");
+const mongoosePaginate = require("mongoose-pagination");
 
 const jwt = require("../services/jwt");
 
@@ -120,8 +121,141 @@ const login = (req, res) => {
     });
 }
 
+const profile = (req, res) => {
+    const id = req.params.id;
+
+    User.findById(id).select({password: 0, role: 0}).then(user => {
+        if(!user){
+            return res.status(404).json({
+                "status": "error",
+                "message": "User doesn't exist"
+            });
+        }
+
+        return res.status(200).json({
+            "status": "success",
+            "user": user
+        });
+    }).catch( () => {
+        return res.status(404).json({
+            "status": "error",
+            "message": "User doesn't exist"
+        });
+    });
+}
+
+const list = (req, res) => {
+    let page = 1;
+
+    if(req.params.page){
+        page = parseInt(req.params.page);
+    }
+
+    let itemsPerPaginate = 5;
+
+    User.find().sort('_id').paginate(page, itemsPerPaginate).then(async(users) => {
+        if(!users) {
+            return res.status(404).json({
+                status: "Error",
+                message: "No users avaliable..."
+            });
+        }
+
+        const total = await User.countDocuments({}).exec();
+
+        return res.status(200).json({
+            "status": "success",
+            users,
+            page,
+            itemsPerPaginate,
+            total,
+            pages: Math.ceil(total/itemsPerPaginate)
+        });
+    }).catch((error) => {
+        return res.status(500).json({
+            "status": "error",
+            error
+        });
+    });
+}
+
+const updateProfile = (req, res) => {
+    let userIdentity = req.user;
+    let userToUpdate = req.body
+
+    delete userToUpdate.iat;
+    delete userToUpdate.exp;
+    delete userToUpdate.role;
+    delete userToUpdate.image;
+
+    User.find({ $or: [
+
+        {email: userToUpdate.email.toLowerCase()},
+        {nick: userToUpdate.nick.toLowerCase()}
+
+    ]}).then( async(users) => {
+        let userIsset = false;
+
+        users.forEach(user => {
+            if(user && user._id != userIdentity.id){
+                userIsset = true;
+            }
+        });
+
+        if (userIsset){
+            return res.status(200).json({
+                "status": "success",
+                "message": "The user already exists"
+            });
+        }
+
+        if(userToUpdate.password){
+            let pwd = await bcrypt.hash(userToUpdate.password, 10);
+            userToUpdate.password = pwd;
+        }
+        
+        try {
+            let userUpdated= await User.findByIdAndUpdate(userIdentity.id, userToUpdate, {new: true});
+
+            if(!userUpdated){
+                return res.status(400).json({
+                    "status": "error",
+                    "message": "Error while updating user"
+                });
+            }
+
+            return res.status(200).json({
+                "status": "success",
+                user: userUpdated
+            });    
+
+        } catch (error) {
+            return res.status(500).json({
+                "status": "error",
+                "message": "Error while updating user",
+            });
+        } 
+    }).catch( error => {
+
+        return res.status(500).json({
+            "status": "error",
+            "message": "Error while saving user",
+            error
+        });
+
+    });
+}
+
+const uploadImage = (req, res) => {
+
+}
+
 module.exports = {
     userTest,
     register,
-    login
+    login,
+    profile,
+    list,
+    updateProfile,
+    uploadImage
 }

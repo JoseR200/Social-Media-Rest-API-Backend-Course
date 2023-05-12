@@ -1,6 +1,8 @@
 const User = require("../models/UserModel")
 const bcrypt = require("bcrypt");
 const mongoosePaginate = require("mongoose-pagination");
+const fs = require("fs")
+const path = require("path")
 
 const jwt = require("../services/jwt");
 
@@ -245,7 +247,64 @@ const updateProfile = (req, res) => {
 }
 
 const uploadImage = (req, res) => {
+    if(!req.file){
+        return res.status(400).json({
+            "status": "error",
+            "message": "Missing image"
+        });
+    }
 
+    let image = req.file.originalname;
+
+    const imageSplit = image.split("\.");
+    const extension = imageSplit[1];
+
+    if(extension != "png" && extension != "jpg" && extension != "jpeg" && extension != "gif"){
+        const filePath = req.file.path;
+        const fileDeleted = fs.unlinkSync(filePath);
+
+        return res.status(400).json({
+            "status": "error",
+            "message": "Invalid file extension"
+        });
+    }
+
+    User.findOneAndUpdate(req.user.id, {image: req.file.filename}, {new: true}).then( userUpdated => {
+        if(!userUpdated){
+            return res.status(500).json({
+                "status": "error",
+                "message": "Error while uploading avatar"
+            });
+        }
+        
+        return res.status(200).json({
+            "status": "success",
+            user: userUpdated,
+            file: req.file
+        });
+    }).catch(error => {
+        return res.status(500).json({
+            "status": "error",
+            "message": "Error while uploading avatar"
+        });
+    });
+}
+
+const avatar = (req, res) => {
+    const file = req.params.file;
+
+    const filePath = "./uploads/avatars/"+file;
+
+    fs.stat(filePath, (error, exists) => {
+        if(!exists) {
+            return res.status(404).json({
+                "status": "error",
+                "message": "Image doesn't exist"
+            });
+        }
+        
+        return res.sendFile(path.resolve(filePath));
+    });
 }
 
 module.exports = {
@@ -255,5 +314,6 @@ module.exports = {
     profile,
     list,
     updateProfile,
-    uploadImage
+    uploadImage,
+    avatar
 }

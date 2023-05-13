@@ -7,7 +7,7 @@ console.log("Social Media REST API NODE started")
 connection();
 
 const app = express();
-const port = 3900;
+const port = process.env.PORT || 3900;
 
 app.use(cors());
 

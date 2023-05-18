@@ -215,7 +215,7 @@ const updateProfile = (req, res) => {
         }
         
         try {
-            let userUpdated= await User.findByIdAndUpdate(userIdentity.id, userToUpdate, {new: true});
+            let userUpdated= await User.findByIdAndUpdate({_id: userIdentity.id}, userToUpdate, {new: true});
 
             if(!userUpdated){
                 return res.status(400).json({
@@ -269,7 +269,7 @@ const uploadImage = (req, res) => {
         });
     }
 
-    User.findOneAndUpdate(req.user.id, {image: req.file.filename}, {new: true}).then( userUpdated => {
+    User.findOneAndUpdate({_id: req.user.id}, {image: req.file.filename}, {new: true}).then( userUpdated => {
         if(!userUpdated){
             return res.status(500).json({
                 "status": "error",

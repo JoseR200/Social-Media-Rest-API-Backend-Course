@@ -79,11 +79,20 @@ const meFollowing = (req, res) => {
 
     const itemsPerPage = 5;
 
-    Follow.find({ user: userId }).exec()
+    Follow.find({ user: userId }).populate("user followed", "-password -role -__v")
+    .paginate(page, itemsPerPage).then( async(follows) => {
+        
+        const total = await Follow.countDocuments({ user: userId }).exec();
 
-    return res.status(200).json({
-        "status": "success",
-        "message": "List of users that I'm following"
+        return res.status(200).json({
+            "status": "success",
+            "message": "List of users that I'm following",
+            follows,
+            total,
+            pages: Math.ceil(total/itemsPerPage)
+        });
+    }).catch( error => {
+
     });
 }
 

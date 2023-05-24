@@ -2,6 +2,8 @@ const Follow = require("../models/FollowModel");
 const User = require("../models/UserModel");
 const mongoosePaginate = require("mongoose-pagination");
 
+const followService = require("../services/followUserIds");
+
 const followTest = (req, res) => {
     return res.status(200).json({
         "message": "Message sent from controller/follow.js"
@@ -84,12 +86,16 @@ const meFollowing = (req, res) => {
         
         const total = await Follow.countDocuments({ user: userId }).exec();
 
+        let followUserIds = await followService.followUserIds(req.user.id);
+
         return res.status(200).json({
             "status": "success",
             "message": "List of users that I'm following",
             follows,
             total,
-            pages: Math.ceil(total/itemsPerPage)
+            pages: Math.ceil(total/itemsPerPage),
+            user_following: followUserIds.following,
+            user_follow_me: followUserIds.followers
         });
     }).catch( error => {
 

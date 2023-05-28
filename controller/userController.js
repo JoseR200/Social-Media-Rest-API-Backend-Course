@@ -5,13 +5,7 @@ const fs = require("fs")
 const path = require("path")
 
 const jwt = require("../services/jwt");
-
-const userTest = (req, res) => {
-    return res.status(200).json({
-        "message": "Message sent from controller/user.js",
-        "user": req.user
-    });
-}
+const followService = require("../services/followUserIds");
 
 const register = (req, res) => {
     let params = req.body;
@@ -24,10 +18,7 @@ const register = (req, res) => {
     } 
 
     User.find({ $or: [
-
-        {email: params.email.toLowerCase()},
-        {nick: params.nick.toLowerCase()}
-
+        {email: params.email.toLowerCase()}
     ]}).then( async(users) => {
 
         if (users && users.length >= 1){
@@ -123,7 +114,7 @@ const login = (req, res) => {
     });
 }
 
-const profile = (req, res) => {
+const myProfile = (req, res) => {
     User.findById(req.user.id).select({password: 0, role: 0}).then(user => {
         if(!user){
             return res.status(404).json({
@@ -132,9 +123,38 @@ const profile = (req, res) => {
             });
         }
 
+
         return res.status(200).json({
             "status": "success",
             "user": user
+        });
+
+    }).catch( () => {
+        return res.status(404).json({
+            "status": "error",
+            "message": "User doesn't exist"
+        });
+    });
+}
+
+const profile = (req, res) => {
+    const id = req.params.id;
+
+    User.findById(id).select({password: 0, role: 0}).then(async(user) => {
+        if(!user){
+            return res.status(404).json({
+                "status": "error",
+                "message": "User doesn't exist"
+            });
+        }
+
+        const followInfo = await followService.followThisUser(req.user.id, id)
+
+        return res.status(200).json({
+            "status": "success",
+            "user": user,
+            following: followInfo.following,
+            follower: followInfo.follower
         });
     }).catch( () => {
         return res.status(404).json({
@@ -153,7 +173,7 @@ const list = (req, res) => {
 
     let itemsPerPaginate = 5;
 
-    User.find().sort('_id').paginate(page, itemsPerPaginate).then(async(users) => {
+    User.find({ _id: { $ne: req.user.id } }).sort('_id').paginate(page, itemsPerPaginate).then(async(users) => {
         if(!users) {
             return res.status(404).json({
                 status: "Error",
@@ -163,13 +183,17 @@ const list = (req, res) => {
 
         const total = await User.countDocuments({}).exec();
 
+        let followUserIds = await followService.followUserIds(req.user.id);
+
         return res.status(200).json({
             "status": "success",
+            "profile": req.user,
             users,
-            page,
             itemsPerPaginate,
             total,
-            pages: Math.ceil(total/itemsPerPaginate)
+            pages: Math.ceil(total/itemsPerPaginate),
+            user_following: followUserIds.following,
+            user_follow_me: followUserIds.followers
         });
     }).catch((error) => {
         return res.status(500).json({
@@ -190,8 +214,7 @@ const updateProfile = (req, res) => {
 
     User.find({ $or: [
 
-        {email: userToUpdate.email.toLowerCase()},
-        {nick: userToUpdate.nick.toLowerCase()}
+        {email: userIdentity.email.toLowerCase()}
 
     ]}).then( async(users) => {
         let userIsset = false;
@@ -308,9 +331,9 @@ const avatar = (req, res) => {
 }
 
 module.exports = {
-    userTest,
     register,
     login,
+    myProfile,
     profile,
     list,
     updateProfile,

@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const multer = require("multer")
+const multer = require("multer");
 const UserController = require("../controller/userController");
 const check = require("../middlewares/auth");
 
@@ -22,6 +22,7 @@ router.get("/profile/:id?", check.auth, UserController.profile);
 router.get("/profileList/:page?", check.auth, UserController.list);
 router.put("/update", check.auth, UserController.updateProfile);
 router.post("/upload", [check.auth, uploads.single("file0")], UserController.uploadImage);
-router.get("/avatar/:file", check.auth, UserController.avatar);
+router.get("/avatar/:file", UserController.avatar);
+router.get("/counter/:id?", check.auth, UserController.counter);
 
 module.exports = router;

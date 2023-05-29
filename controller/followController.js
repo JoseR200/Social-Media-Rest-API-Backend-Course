@@ -96,7 +96,7 @@ const meFollowing = (req, res) => {
 
     const itemsPerPage = 5;
 
-    Follow.find({ user: userId }).select({"user": 0}).populate("userFollowed", "-password -role -__v")
+    Follow.find({ user: userId }).select({"user": 0}).populate("userFollowed", "-password -role -__v -email")
     .paginate(page, itemsPerPage).then( async(follows) => {
         
         const total = await Follow.countDocuments({ user: userId }).exec();
@@ -132,7 +132,7 @@ const followingMe = (req, res) => {
 
     const itemsPerPage = 5;
 
-    Follow.find({ userFollowed: userId }).select({"userFollowed": 0}).populate("user", "-password -role -__v")
+    Follow.find({ userFollowed: userId }).select({"userFollowed": 0}).populate("user", "-password -role -__v -email")
     .paginate(page, itemsPerPage).then( async(follows) => {
         
         const total = await Follow.countDocuments({ user: userId }).exec();

@@ -1,11 +1,14 @@
-const User = require("../models/UserModel")
+const User = require("../models/UserModel");
+const Follow = require("../models/FollowModel");
+const Publication = require("../models/PublicationModel");
 const bcrypt = require("bcrypt");
 const mongoosePaginate = require("mongoose-pagination");
-const fs = require("fs")
-const path = require("path")
+const fs = require("fs");
+const path = require("path");
 
 const jwt = require("../services/jwt");
 const followService = require("../services/followUserIds");
+const validate = require("../helpers/validate");
 
 const register = (req, res) => {
     let params = req.body;
@@ -16,6 +19,16 @@ const register = (req, res) => {
             "message": "Missing data"
         });
     } 
+
+    try {
+        validate(params);
+    } catch (error) {
+        return res.status(400).json({
+            "status": "error",
+            "message": "Validation not passed"
+        });
+    }
+
 
     User.find({ $or: [
         {email: params.email.toLowerCase()}
@@ -173,7 +186,7 @@ const list = (req, res) => {
 
     let itemsPerPaginate = 5;
 
-    User.find({ _id: { $ne: req.user.id } }).sort('_id').paginate(page, itemsPerPaginate).then(async(users) => {
+    User.find({ _id: { $ne: req.user.id } }).sort('_id').select("-password -email -role -__v").paginate(page, itemsPerPaginate).then(async(users) => {
         if(!users) {
             return res.status(404).json({
                 status: "Error",
@@ -235,6 +248,8 @@ const updateProfile = (req, res) => {
         if(userToUpdate.password){
             let pwd = await bcrypt.hash(userToUpdate.password, 10);
             userToUpdate.password = pwd;
+        } else {
+            delete userToUpdate.password;
         }
         
         try {
@@ -330,6 +345,35 @@ const avatar = (req, res) => {
     });
 }
 
+const counter = async (req, res) => {
+    let userId = req.user.id;
+
+    if (req.params.id) {
+        userId = req.params.id;
+    }
+
+    try {
+        const following = await Follow.count({"user": userId});
+
+        const followed = await Follow.count({"userFollowed": userId});
+
+        const publications = await Publication.count({"user": userId});
+
+        return res.status(200).json({
+            userId,
+            following: following,
+            followed: followed,
+            publications: publications
+        });
+
+    } catch (error) {
+        return res.status(500).json({
+            "status": "error",
+            "message": "Error in counter"
+        });
+    }
+}
+
 module.exports = {
     register,
     login,
@@ -338,5 +382,6 @@ module.exports = {
     list,
     updateProfile,
     uploadImage,
-    avatar
+    avatar,
+    counter
 }
